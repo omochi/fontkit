@@ -8,7 +8,6 @@ import DFont from './DFont';
 // Register font formats
 registerFormat(TTFFont);
 registerFormat(WOFFFont);
-registerFormat(WOFF2Font);
 registerFormat(TrueTypeCollection);
 registerFormat(DFont);
 
