@@ -2,7 +2,6 @@ import { registerFormat, create, defaultLanguage, setDefaultLanguage } from './b
 import { open, openSync } from './fs';
 import TTFFont from './TTFFont';
 import WOFFFont from './WOFFFont';
-import WOFF2Font from './WOFF2Font';
 import TrueTypeCollection from './TrueTypeCollection';
 import DFont from './DFont';
 
