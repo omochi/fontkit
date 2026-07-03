@@ -7,7 +7,8 @@ This fork adds the changes described below.
 
 The following patches are applied here and are also being submitted to the original `fontkit` repository, [foliojs/fontkit](https://github.com/foliojs/fontkit).
 
-- [foliojs/fontkit#349](https://github.com/foliojs/fontkit/pull/349)
+- [Fix bug in variation form lookup (foliojs/fontkit#349)](https://github.com/foliojs/fontkit/pull/349)
+- [Use hard coded offSize in CFF encoder (foliojs/fontkit@1a2a572)](https://github.com/foliojs/fontkit/commit/1a2a572b09ced7d2332f1bac1a66acfe960ecdb3)
 
 ## Local Patches
 
