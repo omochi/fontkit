@@ -7,7 +7,7 @@ This fork adds the changes described below.
 
 The following patches are applied here and are also being submitted to the original `fontkit` repository, [foliojs/fontkit](https://github.com/foliojs/fontkit).
 
-<to be written>
+- [foliojs/fontkit#349](https://github.com/foliojs/fontkit/pull/349)
 
 ## Local Patches
 
