@@ -1,3 +1,23 @@
+# Status of This Fork of a Fork
+
+This repository is a fork of [Hopding/fontkit](https://github.com/Hopding/fontkit), which itself is a fork of `fontkit` used by `pdf-lib`.
+This fork adds the changes described below.
+
+## Shared Patches
+
+The following patches are applied here and are also being submitted to the original `fontkit` repository, [foliojs/fontkit](https://github.com/foliojs/fontkit).
+
+<to be written>
+
+## Local Patches
+
+This fork also includes additional patches for my own use case.
+Because of these local changes, this repository is not intended to be consumed directly by others.
+
+<to be written>
+
+---
+
 # Purpose of this Fork
 This project is a fork of https://github.com/foliojs/fontkit created for use in https://github.com/Hopding/pdf-lib.
 
