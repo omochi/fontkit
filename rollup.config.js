@@ -1,8 +1,5 @@
 import babel from '@rollup/plugin-babel';
 import nodeResolve from '@rollup/plugin-node-resolve';
-import nodeBuiltins from 'rollup-plugin-node-builtins';
-import nodeGlobals from 'rollup-plugin-node-globals';
-import inject from '@rollup/plugin-inject';
 import commonjs from '@rollup/plugin-commonjs';
 import json from '@rollup/plugin-json';
 import { terser } from 'rollup-plugin-terser';
@@ -10,6 +7,7 @@ import { terser } from 'rollup-plugin-terser';
 // import visualizer from 'rollup-plugin-visualizer';
 
 const { UGLIFY, MODULE_TYPE } = process.env;
+const nodeBuiltins = ['buffer', 'stream', 'string_decoder', 'util'];
 
 export default {
   input: 'src/index.js',
@@ -17,11 +15,17 @@ export default {
     name: 'fontkit',
     format: MODULE_TYPE,
     strict: false,
+    globals: {
+      buffer: 'buffer',
+      stream: 'stream',
+      string_decoder: 'string_decoder',
+      util: 'util',
+    },
   },
   external:
     MODULE_TYPE === 'esm'
-      ? ['pako'] // pdf-lib will provide pako for us
-      : [],
+      ? ['pako', ...nodeBuiltins] // pdf-lib will provide pako for us
+      : nodeBuiltins,
   plugins: [
     // analyze(),
     // visualizer({
@@ -30,7 +34,7 @@ export default {
     // }),
     nodeResolve({
       jsnext: true,
-      preferBuiltins: false,
+      preferBuiltins: true,
     }),
     commonjs({
       exclude: 'src/**',
@@ -47,11 +51,6 @@ export default {
         ['@babel/plugin-proposal-class-properties'],
       ],
       babelHelpers: 'inline',
-    }),
-    nodeGlobals({ buffer: false }),
-    nodeBuiltins(),
-    inject({
-      Buffer: ['buffer', 'Buffer'],
     }),
     UGLIFY === 'true' && terser(),
   ],
