@@ -38,6 +38,7 @@ export default {
     }),
     commonjs({
       exclude: 'src/**',
+      ignore: ['iconv-lite'],
       namedExports: {
         'node_modules/unicode-trie/index.js': ['default'],
       },
