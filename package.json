@@ -15,6 +15,9 @@
   "dependencies": {
     "pako": "^1.0.6"
   },
+  "resolutions": {
+    "unicode-trie": "https://github.com/omochi/unicode-trie/archive/refs/tags/v2.0.0-omochi.0.tar.gz"
+  },
   "devDependencies": {
     "@babel/cli": "^7.2.0",
     "@babel/core": "^7.2.2",
@@ -47,7 +50,7 @@
     "rollup-plugin-visualizer": "^4.0.4",
     "shelljs": "^0.8.3",
     "tiny-inflate": "^1.0.2",
-    "unicode-trie": "^0.3.0"
+    "unicode-trie": "https://github.com/omochi/unicode-trie/archive/refs/tags/v2.0.0-omochi.0.tar.gz"
   },
   "repository": {
     "type": "git",
