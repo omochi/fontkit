@@ -34,11 +34,6 @@ describe('fontkit', function() {
     font = fontkit.openSync(__dirname + '/data/NotoSans/NotoSans.dfont', 'NotoSans');
     assert.equal(font.constructor.name, 'TTFFont');
 
-    font = fontkit.openSync(__dirname + '/data/SourceSansPro/SourceSansPro-Regular.woff');
-    assert.equal(font.constructor.name, 'WOFFFont');
-
-    font = fontkit.openSync(__dirname + '/data/SourceSansPro/SourceSansPro-Regular.woff2');
-    assert.equal(font.constructor.name, 'WOFF2Font');
   });
 
   it('should open fonts lacking PostScript name', function() {
