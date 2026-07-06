@@ -2,8 +2,7 @@ import DefaultShaper from './DefaultShaper';
 import StateMachine from 'dfa';
 import UnicodeTrie from 'unicode-trie';
 import unicode from '@pdf-lib/unicode-properties';
-import pako from 'pako';
-import * as base64 from 'base64-arraybuffer';
+import zlib from 'zlib';
 import * as Script from '../../layout/Script';
 import GlyphInfo from '../GlyphInfo';
 import {
@@ -19,21 +18,13 @@ import base64DeflatedIndicMachine from './indic.json';
 import base64DeflatedUseData from './use.json';
 import base64DeflatedTrie from './trieIndic.json';
 
-// Trie is serialized as a Buffer in node, but here
-// we may be running in a browser so we make an Uint8Array
 const indicMachine = JSON.parse(
-  String.fromCharCode.apply(
-    String,
-    pako.inflate(base64.decode(base64DeflatedIndicMachine)),
-  ),
+  zlib.inflateSync(Buffer.from(base64DeflatedIndicMachine, 'base64')).toString(),
 );
 const useData = JSON.parse(
-  String.fromCharCode.apply(
-    String,
-    pako.inflate(base64.decode(base64DeflatedUseData)),
-  ),
+  zlib.inflateSync(Buffer.from(base64DeflatedUseData, 'base64')).toString(),
 );
-const trieData = pako.inflate(base64.decode(base64DeflatedTrie));
+const trieData = zlib.inflateSync(Buffer.from(base64DeflatedTrie, 'base64'));
 
 const {decompositions} = useData;
 

@@ -1,13 +1,10 @@
 import DefaultShaper from './DefaultShaper';
 import unicode from '@pdf-lib/unicode-properties';
 import UnicodeTrie from 'unicode-trie';
-import pako from 'pako';
-import * as base64 from 'base64-arraybuffer';
+import zlib from 'zlib';
 
-// Trie is serialized as a Buffer in node, but here
-// we may be running in a browser so we make an Uint8Array
 import base64DeflatedTrie from './trie.json';
-const trieData = pako.inflate(base64.decode(base64DeflatedTrie));
+const trieData = zlib.inflateSync(Buffer.from(base64DeflatedTrie, 'base64'));
 const trie = new UnicodeTrie(trieData);
 
 const FEATURES = ['isol', 'fina', 'fin2', 'fin3', 'medi', 'med2', 'init'];

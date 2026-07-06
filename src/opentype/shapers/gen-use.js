@@ -2,8 +2,7 @@ import codepoints from 'codepoints';
 import fs from 'fs';
 import UnicodeTrieBuilder from 'unicode-trie/builder';
 import compile from 'dfa/compile';
-import pako from 'pako';
-import * as base64 from 'base64-arraybuffer';
+import zlib from 'zlib';
 
 const CATEGORIES = {
   B: [
@@ -276,10 +275,9 @@ function decompose(code) {
   return decomposition;
 }
 
-// Trie is serialized suboptimally as JSON so it can be loaded via require,
-// allowing unicode-properties to work in the browser
+// Trie is serialized as compressed base64 JSON so it can be imported by Rollup.
 const trieFilePath = __dirname + '/trieUse.json'
-const jsonBase64DeflatedTrie = JSON.stringify(base64.encode(pako.deflate(trie.toBuffer())));
+const jsonBase64DeflatedTrie = JSON.stringify(zlib.deflateSync(trie.toBuffer()).toString('base64'));
 fs.writeFileSync(trieFilePath, jsonBase64DeflatedTrie);
 
 let stateMachine = compile(fs.readFileSync(__dirname + '/use.machine', 'utf8'), symbols);
@@ -289,6 +287,6 @@ let json = Object.assign({
 }, stateMachine);
 
 const useFilePath = __dirname + '/use.json';
-const useJsonBytes = JSON.stringify(json).split('').map(c => c.charCodeAt(0));
-const jsonBase64DeflatedUse = JSON.stringify(base64.encode(pako.deflate(useJsonBytes)));
+const useJsonBytes = Buffer.from(JSON.stringify(json));
+const jsonBase64DeflatedUse = JSON.stringify(zlib.deflateSync(useJsonBytes).toString('base64'));
 fs.writeFileSync(useFilePath, jsonBase64DeflatedUse);
