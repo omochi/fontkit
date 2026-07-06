@@ -7,7 +7,7 @@ import { terser } from 'rollup-plugin-terser';
 // import visualizer from 'rollup-plugin-visualizer';
 
 const { UGLIFY, MODULE_TYPE } = process.env;
-const nodeBuiltins = ['buffer', 'stream', 'string_decoder', 'util'];
+const nodeBuiltins = ['buffer', 'stream', 'string_decoder', 'util', 'zlib'];
 
 export default {
   input: 'src/index.js',
@@ -20,6 +20,7 @@ export default {
       stream: 'stream',
       string_decoder: 'string_decoder',
       util: 'util',
+      zlib: 'zlib',
     },
   },
   external:

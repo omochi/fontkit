@@ -13,7 +13,11 @@
     "coverage": "cross-env BABEL_ENV=cover nyc mocha"
   },
   "dependencies": {
-    "pako": "^1.0.6"
+    "pako": "^1.0.6",
+    "unicode-trie": "https://github.com/omochi/unicode-trie/archive/refs/tags/v2.0.0-omochi.0.tar.gz"
+  },
+  "resolutions": {
+    "unicode-trie": "https://github.com/omochi/unicode-trie/archive/refs/tags/v2.0.0-omochi.0.tar.gz"
   },
   "devDependencies": {
     "@babel/cli": "^7.2.0",
@@ -46,8 +50,7 @@
     "rollup-plugin-terser": "^5.3.0",
     "rollup-plugin-visualizer": "^4.0.4",
     "shelljs": "^0.8.3",
-    "tiny-inflate": "^1.0.2",
-    "unicode-trie": "^0.3.0"
+    "tiny-inflate": "^1.0.2"
   },
   "repository": {
     "type": "git",
