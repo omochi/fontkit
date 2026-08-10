@@ -1,5 +1,5 @@
 import DefaultShaper from './DefaultShaper';
-import unicode from '@pdf-lib/unicode-properties';
+import unicode from 'unicode-properties';
 import UnicodeTrie from 'unicode-trie';
 import zlib from 'zlib';
 

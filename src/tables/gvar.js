@@ -1,4 +1,4 @@
-import r from '@pdf-lib/restructure';
+import r from 'restructure';
 
 let shortFrac = new r.Fixed(16, 'BE', 14);
 class Offset {
@@ -21,7 +21,7 @@ let gvar = new r.Struct({
   glyphCount: r.uint16,
   flags: r.uint16,
   offsetToData: r.uint32,
-  offsets: new r.Array(new r.Pointer(Offset, 'void', { relativeTo: 'offsetToData', allowNull: false }), t => t.glyphCount + 1)
+  offsets: new r.Array(new r.Pointer(Offset, 'void', { relativeTo: ctx => ctx.offsetToData, allowNull: false }), t => t.glyphCount + 1)
 });
 
 export default gvar;

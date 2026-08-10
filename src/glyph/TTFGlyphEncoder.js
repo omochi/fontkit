@@ -1,4 +1,4 @@
-import r from '@pdf-lib/restructure';
+import r from 'restructure';
 
 // Flags for simple glyphs
 const ON_CURVE        = 1 << 0;

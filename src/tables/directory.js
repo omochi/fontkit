@@ -1,4 +1,4 @@
-import r from '@pdf-lib/restructure';
+import r from 'restructure';
 import Tables from './';
 
 let TableEntry = new r.Struct({
