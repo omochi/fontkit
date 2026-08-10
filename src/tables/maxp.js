@@ -1,4 +1,4 @@
-import r from '@pdf-lib/restructure';
+import r from 'restructure';
 
 // maxiumum profile
 export default new r.Struct({

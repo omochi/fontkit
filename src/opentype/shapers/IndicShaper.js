@@ -1,7 +1,7 @@
 import DefaultShaper from './DefaultShaper';
 import StateMachine from 'dfa';
 import UnicodeTrie from 'unicode-trie';
-import unicode from '@pdf-lib/unicode-properties';
+import unicode from 'unicode-properties';
 import zlib from 'zlib';
 import * as Script from '../../layout/Script';
 import GlyphInfo from '../GlyphInfo';
