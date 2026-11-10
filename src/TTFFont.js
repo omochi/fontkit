@@ -1,3 +1,4 @@
+import unicode from 'unicode-properties';
 import r from 'restructure';
 import { cache } from './decorators';
 import fontkit from './base';
@@ -409,7 +410,16 @@ export default class TTFFont {
       }
     }
 
-    return this._glyphs[glyph] || null;
+    const cached = this._glyphs[glyph];
+    if (!cached) return null;
+    // A glyph outline is shared, but its input characters belong to this use,
+    // not to the glyph ID: multiple Unicode sequences can map to the same ID.
+    if (cached.codePoints.length === characters.length && cached.codePoints.every((cp, i) => cp === characters[i])) return cached;
+    const result = Object.create(cached);
+    result.codePoints = characters.slice();
+    result.isMark = result.codePoints.length > 0 && result.codePoints.every(unicode.isMark);
+    result.isLigature = result.codePoints.length > 1;
+    return result;
   }
 
   /**

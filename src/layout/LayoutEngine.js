@@ -40,6 +40,16 @@ export default class LayoutEngine {
       }
 
       var glyphs = this.font.glyphsForString(string);
+      // Source ranges are per use, never properties of a cached font glyph.
+      let sourceOffset = 0;
+      glyphs = glyphs.map(glyph => {
+        const sourceText = String.fromCodePoint(...glyph.codePoints);
+        const result = Object.create(glyph);
+        result.sourceRange = string.slice(sourceOffset, sourceOffset + sourceText.length) === sourceText
+          ? { start: sourceOffset, end: sourceOffset + sourceText.length } : null;
+        sourceOffset += sourceText.length;
+        return result;
+      });
     } else {
       // Attempt to detect the script from the glyph code points if not provided.
       if (script == null) {
@@ -59,6 +69,7 @@ export default class LayoutEngine {
     // Return early if there are no glyphs
     if (glyphs.length === 0) {
       glyphRun.positions = [];
+      glyphRun.sourceRanges = [];
       return glyphRun;
     }
 
@@ -71,6 +82,8 @@ export default class LayoutEngine {
     this.substitute(glyphRun);
     this.position(glyphRun);
 
+    // Capture ranges before default-ignorable glyphs are replaced with spaces.
+    glyphRun.sourceRanges = glyphRun.glyphs.map(glyph => glyph.sourceRange || null);
     this.hideDefaultIgnorables(glyphRun.glyphs, glyphRun.positions);
 
     // Let the layout engine clean up any state it might have
@@ -90,7 +103,11 @@ export default class LayoutEngine {
 
   position(glyphRun) {
     // Get initial glyph positions
-    glyphRun.positions = glyphRun.glyphs.map(glyph => new GlyphPosition(glyph.advanceWidth));
+    glyphRun.positions = glyphRun.glyphs.map(glyph => {
+      if (glyphRun.direction !== 'ttb') return new GlyphPosition(glyph.advanceWidth);
+      const verticalOriginY = this.verticalOriginY(glyph);
+      return new GlyphPosition(0, -glyph.advanceHeight, -glyph.advanceWidth / 2, -verticalOriginY);
+    });
     let positioned = null;
 
     // Call the advanced layout engine. Returns the features applied.
@@ -108,7 +125,7 @@ export default class LayoutEngine {
     }
 
     // if kerning is not supported by GPOS, do kerning with the TrueType/AAT kern table
-    if ((!positioned || !positioned.kern) && glyphRun.features.kern !== false && this.font.kern) {
+    if (glyphRun.direction !== 'ttb' && (!positioned || !positioned.kern) && glyphRun.features.kern !== false && this.font.kern) {
       if (!this.kernProcessor) {
         this.kernProcessor = new KernProcessor(this.font);
       }
@@ -116,6 +133,15 @@ export default class LayoutEngine {
       this.kernProcessor.process(glyphRun.glyphs, glyphRun.positions);
       glyphRun.features.kern = true;
     }
+  }
+
+  verticalOriginY(glyph) {
+    const vorg = this.font.VORG;
+    if (vorg && (this.font.directory.tables['CFF '] || this.font.directory.tables.CFF2)) {
+      const metric = vorg.metrics.find(entry => entry.glyphIndex === glyph.id);
+      return metric ? metric.vertOriginY : vorg.defaultVertOriginY;
+    }
+    return glyph.cbox.maxY + glyph._getMetrics().topBearing;
   }
 
   hideDefaultIgnorables(glyphs, positions) {

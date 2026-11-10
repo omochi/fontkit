@@ -4,6 +4,7 @@ import OTProcessor from './OTProcessor';
 export default class GlyphInfo {
   constructor(font, id, codePoints = [], features) {
     this._font = font;
+    this.sourceRange = null;
     this.codePoints = codePoints;
     this.id = id;
 
@@ -52,6 +53,8 @@ export default class GlyphInfo {
   }
 
   copy() {
-    return new GlyphInfo(this._font, this.id, this.codePoints, this.features);
+    const result = new GlyphInfo(this._font, this.id, this.codePoints, this.features);
+    result.sourceRange = this.sourceRange;
+    return result;
   }
 }

@@ -58,7 +58,9 @@ export default class UniversalShaper extends DefaultShaper {
       if (decompositions[codepoint]) {
         let decomposed = decompositions[codepoint].map(c => {
           let g = plan.font.glyphForCodePoint(c);
-          return new GlyphInfo(plan.font, g.id, [c], glyphs[i].features);
+          const result = new GlyphInfo(plan.font, g.id, [c], glyphs[i].features);
+          result.sourceRange = glyphs[i].sourceRange;
+          return result;
         });
 
         glyphs.splice(i, 1, ...decomposed);

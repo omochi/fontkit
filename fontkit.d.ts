@@ -183,6 +183,8 @@ export interface GlyphRun {
    * An array of GlyphPosition objects for each glyph in the run
    */
   positions: GlyphPosition[];
+  /** UTF-16 ranges in the input text for each output glyph, or null when unavailable. */
+  sourceRanges: ({ start: number; end: number } | null)[] | null;
 
   /**
    * The script that was requested for shaping. This was either passed in or detected automatically.
@@ -199,7 +201,7 @@ export interface GlyphRun {
    * The direction requested for shaping, as passed in (either ltr or rtl).
    * If `null`, the default direction of the script is used.
    */
-  direction: 'ltr' | 'rtl' | null;
+  direction: 'ltr' | 'rtl' | 'ttb' | null;
 
   /**
    * The features requested during shaping. This is a combination of user
@@ -620,6 +622,9 @@ export interface Font {
   layout(
     string: string,
     features?: TypeFeatures | (keyof TypeFeatures)[],
+    script?: string | null,
+    language?: string | null,
+    direction?: 'ltr' | 'rtl' | 'ttb' | null,
   ): GlyphRun;
 
   // Other Methods
