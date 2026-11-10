@@ -8,7 +8,14 @@ describe('shaping', function() {
   let test = (description, font, text, output) => {
     it(description, function() {
       let f = fontCache[font] || (fontCache[font] = fontkit.openSync(__dirname + '/data/' + font));
-      let {glyphs, positions} = flattenRun(f.layout(text));
+      let run = f.layout(text);
+      let {glyphs, positions} = flattenRun(run);
+      // Shaping may reorder clusters, but it must neither lose nor duplicate input.
+      assert.deepEqual(
+        Array.from(run.clusters.map(cluster => cluster.sourceText).join('')).sort(),
+        Array.from(text).sort()
+      );
+      assert.ok(glyphs.every(glyph => !Object.prototype.hasOwnProperty.call(glyph, 'cluster')));
 
       // Generate a compact string representation of the results
       // in the same format as Harfbuzz, for comparison.

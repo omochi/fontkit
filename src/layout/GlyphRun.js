@@ -1,13 +1,19 @@
 import BBox from '../glyph/BBox';
+import * as Script from './Script';
 
 /** The public result of shaping: clusters in glyph drawing order. */
 export default class GlyphRun {
-  constructor(clusters, state) {
+  constructor(clusters, features, script, language, direction) {
     this.clusters = clusters;
-    this.script = state.script;
-    this.language = state.language;
-    this.direction = state.direction;
-    this.features = state.features;
+    this.script = script;
+    this.language = language || null;
+    this.direction = direction || Script.direction(script);
+    this.features = {};
+    if (Array.isArray(features)) {
+      for (const tag of features) this.features[tag] = true;
+    } else if (features && typeof features === 'object') {
+      this.features = features;
+    }
   }
 
   get advanceWidth() {

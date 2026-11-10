@@ -1,9 +1,8 @@
 import KernProcessor from './KernProcessor';
 import UnicodeLayoutEngine from './UnicodeLayoutEngine';
 import GlyphRun from './GlyphRun';
-import ShapingRun from './ShapingRun';
 import GlyphPosition from './GlyphPosition';
-import { buildGlyphClusters } from './GlyphCluster';
+import { ShapingClusters } from './GlyphCluster';
 import * as Script from './Script';
 import unicode from 'unicode-properties';
 import AATLayoutEngine from '../aat/AATLayoutEngine';
@@ -42,16 +41,6 @@ export default class LayoutEngine {
       }
 
       var glyphs = this.font.glyphsForString(string);
-      // Source ranges are per use, never properties of a cached font glyph.
-      let sourceOffset = 0;
-      glyphs = glyphs.map(glyph => {
-        const sourceText = String.fromCodePoint(...glyph.codePoints);
-        const result = Object.create(glyph);
-        result.sourceRange = string.slice(sourceOffset, sourceOffset + sourceText.length) === sourceText
-          ? { start: sourceOffset, end: sourceOffset + sourceText.length } : null;
-        sourceOffset += sourceText.length;
-        return result;
-      });
     } else {
       // Attempt to detect the script from the glyph code points if not provided.
       if (script == null) {
@@ -66,50 +55,47 @@ export default class LayoutEngine {
       var glyphs = string;
     }
 
-    let glyphRun = new ShapingRun(glyphs, features, script, language, direction);
+    // Clusters own the source text from the beginning. Glyph wrappers are local
+    // to this shaping operation; font glyphs themselves are shared and cached.
+    const clusters = new ShapingClusters(string, glyphs);
+    glyphs = clusters.glyphs();
+    let glyphRun = new GlyphRun(clusters.clusters, features, script, language, direction);
 
-    // Return early if there are no glyphs
     if (glyphs.length === 0) {
-      glyphRun.positions = [];
-      return new GlyphRun(buildGlyphClusters(string, [], [], []), glyphRun);
+      clusters.finish([], []);
+      return glyphRun;
     }
 
     // Setup the advanced layout engine
     if (this.engine && this.engine.setup) {
-      this.engine.setup(glyphRun);
+      this.engine.setup(glyphRun, glyphs);
     }
 
     // Substitute and position the glyphs
-    this.substitute(glyphRun);
-    this.position(glyphRun);
-
-    // Capture ranges before default-ignorable glyphs are replaced with spaces.
-    const sourceRanges = glyphRun.glyphs.map(glyph => glyph.sourceRange || null);
-    // Source bookkeeping is internal to shaping, not part of a font glyph.
-    if (typeof string === 'string') {
-      for (const glyph of glyphRun.glyphs) delete glyph.sourceRange;
-    }
-    this.hideDefaultIgnorables(glyphRun.glyphs, glyphRun.positions);
-    const clusters = buildGlyphClusters(string, glyphRun.glyphs, glyphRun.positions, sourceRanges);
+    glyphs = this.substitute(glyphRun, glyphs);
+    clusters.updateGlyphs(glyphs);
+    const positions = this.position(glyphRun, glyphs);
+    clusters.finish(glyphs, positions);
+    this.hideDefaultIgnorables(glyphRun.clusters);
 
     // Let the layout engine clean up any state it might have
     if (this.engine && this.engine.cleanup) {
       this.engine.cleanup();
     }
 
-    return new GlyphRun(clusters, glyphRun);
+    return glyphRun;
   }
 
-  substitute(glyphRun) {
-    // Call the advanced layout engine to make substitutions
+  substitute(glyphRun, glyphs) {
     if (this.engine && this.engine.substitute) {
-      this.engine.substitute(glyphRun);
+      return this.engine.substitute(glyphRun, glyphs);
     }
+    return glyphs;
   }
 
-  position(glyphRun) {
-    // Get initial glyph positions
-    glyphRun.positions = glyphRun.glyphs.map(glyph => {
+  position(glyphRun, glyphs) {
+    // The processors use temporary flat arrays because lookups cross clusters.
+    let positions = glyphs.map(glyph => {
       if (glyphRun.direction !== 'ttb') return new GlyphPosition(glyph.advanceWidth);
       const verticalOriginY = this.verticalOriginY(glyph);
       return new GlyphPosition(0, -glyph.advanceHeight, -glyph.advanceWidth / 2, -verticalOriginY);
@@ -118,7 +104,7 @@ export default class LayoutEngine {
 
     // Call the advanced layout engine. Returns the features applied.
     if (this.engine && this.engine.position) {
-      positioned = this.engine.position(glyphRun);
+      positioned = this.engine.position(glyphRun, glyphs, positions);
     }
 
     // if there is no GPOS table, use unicode properties to position marks.
@@ -127,7 +113,7 @@ export default class LayoutEngine {
         this.unicodeLayoutEngine = new UnicodeLayoutEngine(this.font);
       }
 
-      this.unicodeLayoutEngine.positionGlyphs(glyphRun.glyphs, glyphRun.positions);
+      this.unicodeLayoutEngine.positionGlyphs(glyphs, positions);
     }
 
     // if kerning is not supported by GPOS, do kerning with the TrueType/AAT kern table
@@ -136,9 +122,10 @@ export default class LayoutEngine {
         this.kernProcessor = new KernProcessor(this.font);
       }
 
-      this.kernProcessor.process(glyphRun.glyphs, glyphRun.positions);
+      this.kernProcessor.process(glyphs, positions);
       glyphRun.features.kern = true;
     }
+    return positions;
   }
 
   verticalOriginY(glyph) {
@@ -150,13 +137,13 @@ export default class LayoutEngine {
     return glyph.cbox.maxY + glyph._getMetrics().topBearing;
   }
 
-  hideDefaultIgnorables(glyphs, positions) {
+  hideDefaultIgnorables(clusters) {
     let space = this.font.glyphForCodePoint(0x20);
-    for (let i = 0; i < glyphs.length; i++) {
-      if (this.isDefaultIgnorable(glyphs[i].codePoints[0])) {
-        glyphs[i] = space;
-        positions[i].xAdvance = 0;
-        positions[i].yAdvance = 0;
+    for (const cluster of clusters) for (const item of cluster.glyphs) {
+      if (this.isDefaultIgnorable(item.glyph.codePoints[0])) {
+        item.glyph = space;
+        item.position.xAdvance = 0;
+        item.position.yAdvance = 0;
       }
     }
   }

@@ -1,11 +1,12 @@
 import AATStateMachine from './AATStateMachine';
 import AATLookupTable from './AATLookupTable';
 import {cache} from '../decorators';
+import { mergeGlyphClusters } from '../layout/GlyphCluster';
 
 // indic replacement flags
-function glyphWithSource(font, gid, codePoints, sourceRange) {
+function glyphWithSource(font, gid, codePoints, cluster) {
   const glyph = Object.create(font.getGlyph(gid, codePoints));
-  glyph.sourceRange = sourceRange || null;
+  glyph.cluster = cluster || null;
   return glyph;
 }
 
@@ -147,7 +148,7 @@ export default class AATMorxProcessor {
       glyph = this.glyphs[this.markedGlyph];
       var gid = lookupTable.lookup(glyph.id);
       if (gid) {
-        this.glyphs[this.markedGlyph] = glyphWithSource(this.font, gid, glyph.codePoints, glyph.sourceRange);
+        this.glyphs[this.markedGlyph] = glyphWithSource(this.font, gid, glyph.codePoints, glyph.cluster);
       }
     }
 
@@ -157,7 +158,7 @@ export default class AATMorxProcessor {
       glyph = this.glyphs[index];
       var gid = lookupTable.lookup(glyph.id);
       if (gid) {
-        this.glyphs[index] = glyphWithSource(this.font, gid, glyph.codePoints, glyph.sourceRange);
+        this.glyphs[index] = glyphWithSource(this.font, gid, glyph.codePoints, glyph.cluster);
       }
     }
 
@@ -180,13 +181,13 @@ export default class AATMorxProcessor {
       let last = false;
       let ligatureIndex = 0;
       let codePoints = [];
-      let sourceRanges = [];
+      let clusters = [];
       let ligatureGlyphs = [];
 
       while (!last) {
         let componentGlyph = this.ligatureStack.pop();
         codePoints.unshift(...this.glyphs[componentGlyph].codePoints);
-        sourceRanges.push(this.glyphs[componentGlyph].sourceRange || null);
+        clusters.push(this.glyphs[componentGlyph].cluster || null);
 
         let action = actions.getItem(actionIndex++);
         last = !!(action & LAST_MASK);
@@ -199,14 +200,12 @@ export default class AATMorxProcessor {
 
         if (last || store) {
           let ligatureEntry = ligatureList.getItem(ligatureIndex);
-          const sourceRange = sourceRanges.every(Boolean)
-            ? { start: Math.min(...sourceRanges.map(range => range.start)), end: Math.max(...sourceRanges.map(range => range.end)) }
-            : null;
-          this.glyphs[componentGlyph] = glyphWithSource(this.font, ligatureEntry, codePoints, sourceRange);
+          const cluster = mergeGlyphClusters(clusters.map(cluster => ({ cluster })));
+          this.glyphs[componentGlyph] = glyphWithSource(this.font, ligatureEntry, codePoints, cluster);
           ligatureGlyphs.push(componentGlyph);
           ligatureIndex = 0;
           codePoints = [];
-          sourceRanges = [];
+          clusters = [];
         } else {
           this.glyphs[componentGlyph] = this.font.getGlyph(0xffff);
         }
@@ -225,7 +224,7 @@ export default class AATMorxProcessor {
       if (glyph.id !== 0xffff) {
         let gid = lookupTable.lookup(glyph.id);
         if (gid) { // 0 means do nothing
-          glyphs[index] = glyphWithSource(this.font, gid, glyph.codePoints, glyph.sourceRange);
+          glyphs[index] = glyphWithSource(this.font, gid, glyph.codePoints, glyph.cluster);
         }
       }
     }
@@ -235,7 +234,8 @@ export default class AATMorxProcessor {
     let insertions = [];
     while (count--) {
       let gid = this.subtable.table.insertionActions.getItem(insertionActionIndex++);
-      insertions.push(this.font.getGlyph(gid));
+      const source = this.glyphs[glyphIndex];
+      insertions.push(glyphWithSource(this.font, gid, [], source && source.cluster));
     }
 
     if (!isBefore) {

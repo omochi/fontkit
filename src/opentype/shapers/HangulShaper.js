@@ -1,5 +1,6 @@
 import DefaultShaper from './DefaultShaper';
 import GlyphInfo from '../GlyphInfo';
+import { mergeGlyphClusters } from '../../layout/GlyphCluster';
 
 /**
  * This is a shaper for the Hangul script, used by the Korean language.
@@ -174,7 +175,7 @@ function decompose(glyphs, i, font) {
     insert.push(tjmo);
   }
 
-  for (const part of insert) part.sourceRange = glyph.sourceRange;
+  for (const part of insert) part.cluster = glyph.cluster;
   glyphs.splice(i, 1, ...insert);
   return i + insert.length - 1;
 }
@@ -224,10 +225,7 @@ function compose(glyphs, i, font) {
       let del = prevType === V ? 3 : 2;
       const parts = glyphs.slice(i - del + 1, i + 1);
       const result = getGlyph(font, s, glyph.features);
-      const ranges = parts.map(part => part.sourceRange);
-      result.sourceRange = ranges.every(Boolean)
-        ? { start: Math.min(...ranges.map(range => range.start)), end: Math.max(...ranges.map(range => range.end)) }
-        : null;
+      result.cluster = mergeGlyphClusters(parts);
       glyphs.splice(i - del + 1, del, result);
       return i - del + 1;
     }
@@ -281,6 +279,7 @@ function insertDottedCircle(glyphs, i, font) {
 
   if (font.hasGlyphForCodePoint(DOTTED_CIRCLE)) {
     let dottedCircle = getGlyph(font, DOTTED_CIRCLE, glyph.features);
+    dottedCircle.cluster = glyph.cluster;
 
     // If the tone mark is zero width, insert the dotted circle before, otherwise after
     let idx = font.glyphForCodePoint(code).advanceWidth === 0 ? i : i + 1;

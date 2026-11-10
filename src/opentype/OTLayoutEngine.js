@@ -22,11 +22,11 @@ export default class OTLayoutEngine {
     }
   }
 
-  setup(glyphRun) {
+  setup(glyphRun, glyphs) {
     // Map glyphs to GlyphInfo objects so data can be passed between
     // GSUB and GPOS without mutating the real (shared) Glyph objects.
-    this.glyphInfos = glyphRun.glyphs.map(glyph =>
-      new GlyphInfo(this.font, glyph.id, [...glyph.codePoints], undefined, glyph.sourceRange)
+    this.glyphInfos = glyphs.map(glyph =>
+      new GlyphInfo(this.font, glyph.id, [...glyph.codePoints], undefined, glyph.cluster)
     );
 
     // Select a script based on what is available in GSUB/GPOS.
@@ -51,36 +51,37 @@ export default class OTLayoutEngine {
     }
   }
 
-  substitute(glyphRun) {
+  substitute(glyphRun, glyphs) {
     if (this.GSUBProcessor) {
       this.plan.process(this.GSUBProcessor, this.glyphInfos);
 
       // Map glyph infos back to normal Glyph objects
-      glyphRun.glyphs = this.glyphInfos.map(glyphInfo => {
+      glyphs = this.glyphInfos.map(glyphInfo => {
         const glyph = Object.create(this.font.getGlyph(glyphInfo.id, glyphInfo.codePoints));
-        glyph.sourceRange = glyphInfo.sourceRange;
+        glyph.cluster = glyphInfo.cluster;
         return glyph;
       });
     }
+    return glyphs;
   }
 
-  position(glyphRun) {
+  position(glyphRun, glyphs, positions) {
     if (this.shaper.zeroMarkWidths === 'BEFORE_GPOS') {
-      this.zeroMarkAdvances(glyphRun.positions);
+      this.zeroMarkAdvances(positions);
     }
 
     if (this.GPOSProcessor) {
-      this.plan.process(this.GPOSProcessor, this.glyphInfos, glyphRun.positions);
+      this.plan.process(this.GPOSProcessor, this.glyphInfos, positions);
     }
 
     if (this.shaper.zeroMarkWidths === 'AFTER_GPOS') {
-      this.zeroMarkAdvances(glyphRun.positions);
+      this.zeroMarkAdvances(positions);
     }
 
     // Reverse the glyphs and positions if the script is right-to-left
     if (glyphRun.direction === 'rtl') {
-      glyphRun.glyphs.reverse();
-      glyphRun.positions.reverse();
+      glyphs.reverse();
+      positions.reverse();
     }
 
     return this.GPOSProcessor && this.GPOSProcessor.features;

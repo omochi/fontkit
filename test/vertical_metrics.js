@@ -25,6 +25,7 @@ describe('vertical metrics', function() {
     const ligature = font.layout('ffi', ['dlig']);
     assert.deepEqual(ligature.clusters.map(cluster => cluster.sourceText), ['ff', 'i']);
     assert.ok(flattenRun(ligature).glyphs.every(glyph => !Object.prototype.hasOwnProperty.call(glyph, 'sourceRange')));
+    assert.ok(flattenRun(ligature).glyphs.every(glyph => !Object.prototype.hasOwnProperty.call(glyph, 'cluster')));
     assert.ok(!('glyphs' in ligature));
     assert.ok(!('positions' in ligature));
     const variantFont = fontkit.openSync(__dirname + '/data/fonttest/TestCMAP14.otf');
@@ -48,11 +49,18 @@ describe('vertical metrics', function() {
     assert.deepEqual(font.layout('ffi', [], null, null, 'rtl').clusters.map(cluster => cluster.sourceText), ['i', 'f', 'f']);
   });
 
-  it('retains the original range when Hangul jamo are composed', function() {
+  it('retains the original text when Hangul jamo are composed', function() {
     const font = fontkit.openSync(__dirname + '/data/NotoSansCJK/NotoSansCJKkr-Regular.otf');
     const run = font.layout('가');
     assert.equal(flattenRun(run).glyphs.length, 1);
     assert.deepEqual(run.clusters.map(cluster => cluster.sourceText), ['가']);
+  });
+
+  it('retains source text when Hangul shaping inserts a dotted circle', function() {
+    const font = fontkit.openSync(__dirname + '/data/NotoSansCJK/NotoSansCJKkr-Regular.otf');
+    const run = font.layout('\u302f', [], 'hang');
+    assert.equal(flattenRun(run).glyphs.length, 2);
+    assert.deepEqual(run.clusters.map(cluster => cluster.sourceText), ['\u302f']);
   });
 
   it('falls back to horizontal font-wide metrics when vmtx is absent', function() {

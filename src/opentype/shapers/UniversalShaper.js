@@ -58,7 +58,7 @@ export default class UniversalShaper extends DefaultShaper {
       if (decompositions[codepoint]) {
         let decomposed = decompositions[codepoint].map(c => {
           let g = plan.font.glyphForCodePoint(c);
-          return new GlyphInfo(plan.font, g.id, [c], glyphs[i].features, glyphs[i].sourceRange);
+          return new GlyphInfo(plan.font, g.id, [c], glyphs[i].features, glyphs[i].cluster);
         });
 
         glyphs.splice(i, 1, ...decomposed);
@@ -136,7 +136,7 @@ function reorder(font, glyphs) {
 
     // Insert a dotted circle glyph in broken clusters.
     if (type === 'broken_cluster' && dottedCircle) {
-      let g = new GlyphInfo(font, dottedCircle, [0x25cc]);
+      let g = new GlyphInfo(font, dottedCircle, [0x25cc], undefined, glyphs[start].cluster);
       g.shaperInfo = info;
 
       // Insert after possible Repha.

@@ -1,5 +1,6 @@
 import OTProcessor from './OTProcessor';
 import GlyphInfo from './GlyphInfo';
+import { mergeGlyphClusters } from '../layout/GlyphCluster';
 
 export default class GSUBProcessor extends OTProcessor {
   applyLookup(lookupType, table) {
@@ -34,7 +35,7 @@ export default class GSUBProcessor extends OTProcessor {
           let features = this.glyphIterator.cur.features;
           let curGlyph = this.glyphIterator.cur;
           let replacement = sequence.slice(1).map((gid, i) => {
-            let glyph = new GlyphInfo(this.font, gid, undefined, features, curGlyph.sourceRange);
+            let glyph = new GlyphInfo(this.font, gid, undefined, features, curGlyph.cluster);
             glyph.shaperInfo = curGlyph.shaperInfo;
             glyph.isLigated = curGlyph.isLigated;
             glyph.ligatureComponent = i + 1;
@@ -82,11 +83,8 @@ export default class GSUBProcessor extends OTProcessor {
           }
 
           // Create the replacement ligature glyph
-          const ranges = [curGlyph, ...matched.map(index => this.glyphs[index])].map(glyph => glyph.sourceRange);
-          const sourceRange = ranges.every(Boolean)
-            ? { start: Math.min(...ranges.map(range => range.start)), end: Math.max(...ranges.map(range => range.end)) }
-            : null;
-          let ligatureGlyph = new GlyphInfo(this.font, ligature.glyph, characters, curGlyph.features, sourceRange);
+          const cluster = mergeGlyphClusters([curGlyph, ...matched.map(index => this.glyphs[index])]);
+          let ligatureGlyph = new GlyphInfo(this.font, ligature.glyph, characters, curGlyph.features, cluster);
           ligatureGlyph.shaperInfo = curGlyph.shaperInfo;
           ligatureGlyph.isLigated = true;
           ligatureGlyph.substituted = true;

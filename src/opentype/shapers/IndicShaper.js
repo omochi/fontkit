@@ -81,7 +81,7 @@ export default class IndicShaper extends DefaultShaper {
       if (d) {
         let decomposed = d.map(c => {
           let g = plan.font.glyphForCodePoint(c);
-          return new GlyphInfo(plan.font, g.id, [c], glyphs[i].features, glyphs[i].sourceRange);
+          return new GlyphInfo(plan.font, g.id, [c], glyphs[i].features, glyphs[i].cluster);
         });
 
         glyphs.splice(i, 1, ...decomposed);
@@ -200,7 +200,7 @@ function initialReordering(font, glyphs, plan) {
     }
 
     if (syllableType === 'broken_cluster' && dottedCircle) {
-      let g = new GlyphInfo(font, dottedCircle, [0x25cc]);
+      let g = new GlyphInfo(font, dottedCircle, [0x25cc], undefined, glyphs[start].cluster);
       g.shaperInfo = new IndicInfo(
         1 << indicCategory(g),
         indicPosition(g),

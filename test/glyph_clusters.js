@@ -1,46 +1,76 @@
 import assert from 'assert';
-import { buildGlyphClusters } from '../src/layout/GlyphCluster';
+import { ShapingClusters, mergeGlyphClusters } from '../src/layout/GlyphCluster';
 
 describe('glyph clusters', function() {
-  const glyphs = [0, 1, 2].map(id => ({ id }));
-  const positions = [0, 1, 2].map(xAdvance => ({ xAdvance }));
-  const span = (start, end) => ({ start, end });
-  it('keeps combining marks and the base in one cluster', function() {
-    const clusters = buildGlyphClusters('a\u0301b', glyphs, positions, [span(0, 1), span(1, 2), span(2, 3)]);
-    assert.deepEqual(clusters.map(c => c.sourceText), ['a\u0301', 'b']);
-    assert.deepEqual(clusters.map(c => c.glyphs.map(g => g.glyph.id)), [[0, 1], [2]]);
-    assert.strictEqual(clusters[0].glyphs[1].position, positions[1]);
+  function shape(text) {
+    const glyphs = Array.from(text, (char, id) => ({ id, codePoints: [char.codePointAt(0)] }));
+    const clusters = new ShapingClusters(text, glyphs);
+    return { clusters, glyphs: clusters.glyphs() };
+  }
+  function finish(clusters, glyphs) {
+    clusters.finish(glyphs, glyphs.map((_, xAdvance) => ({ xAdvance })));
+    return clusters.clusters;
+  }
+
+  it('starts with grapheme clusters and keeps marks with their base', function() {
+    const { clusters, glyphs } = shape('a\u0301b');
+    assert.deepEqual(clusters.clusters.map(c => c.sourceText), ['a\u0301', 'b']);
+    assert.deepEqual(finish(clusters, glyphs).map(c => c.glyphs.map(g => g.glyph.id)), [[0, 1], [2]]);
   });
-  it('merges the intervening mark into a non-adjacent ligature cluster', function() {
-    const clusters = buildGlyphClusters('a\u0301b', glyphs.slice(0, 2), positions, [span(0, 3), span(1, 2)]);
-    assert.deepEqual(clusters.map(c => c.sourceText), ['a\u0301b']);
-    assert.deepEqual(clusters[0].glyphs.map(g => g.glyph.id), [0, 1]);
+  it('merges intervening source clusters for a non-adjacent ligature', function() {
+    const { clusters, glyphs } = shape('abc');
+    const cluster = mergeGlyphClusters([glyphs[0], glyphs[2]]);
+    const ligature = { id: 10, cluster };
+    const result = finish(clusters, [ligature, glyphs[1]]);
+    assert.deepEqual(result.map(c => c.sourceText), ['abc']);
+    assert.deepEqual(result[0].glyphs.map(g => g.glyph.id), [10, 1]);
   });
-  it('merges visually interleaved clusters and preserves drawing order', function() {
-    const clusters = buildGlyphClusters('ab', glyphs, positions, [span(0, 1), span(1, 2), span(0, 1)]);
-    assert.deepEqual(clusters.map(c => c.sourceText), ['ab']);
-    assert.deepEqual(clusters[0].glyphs.map(g => g.glyph.id), [0, 1, 2]);
+  it('merges visually interleaved clusters preserving glyph order', function() {
+    const { clusters, glyphs } = shape('ab');
+    const extra = { id: 2, cluster: glyphs[0].cluster };
+    const result = finish(clusters, [glyphs[0], glyphs[1], extra]);
+    assert.deepEqual(result.map(c => c.sourceText), ['ab']);
+    assert.deepEqual(result[0].glyphs.map(g => g.glyph.id), [0, 1, 2]);
   });
-  it('orders separate clusters in visual order without reversing their source text', function() {
-    const clusters = buildGlyphClusters('abc', glyphs, positions, [span(2, 3), span(1, 2), span(0, 1)]);
-    assert.deepEqual(clusters.map(c => c.sourceText), ['c', 'b', 'a']);
-    assert.deepEqual(clusters.flatMap(c => c.glyphs.map(g => g.glyph.id)), [0, 1, 2]);
+  it('keeps source strings intact when clusters are reordered', function() {
+    const { clusters, glyphs } = shape('abc');
+    assert.deepEqual(finish(clusters, glyphs.reverse()).map(c => c.sourceText), ['c', 'b', 'a']);
   });
-  it('keeps the whole run if grapheme segmentation is unavailable', function() {
+  it('keeps the run together if grapheme segmentation is unavailable', function() {
     const original = Intl.Segmenter;
     try {
       Intl.Segmenter = undefined;
-      assert.deepEqual(buildGlyphClusters('abc', glyphs, positions, [span(0, 1), span(1, 2), span(2, 3)]).map(c => c.sourceText), ['abc']);
+      const { clusters, glyphs } = shape('abc');
+      assert.deepEqual(finish(clusters, glyphs).map(c => c.sourceText), ['abc']);
     } finally { Intl.Segmenter = original; }
   });
-  it('uses an empty source string when given glyphs without source text', function() {
-    const clusters = buildGlyphClusters(glyphs, glyphs, positions, []);
-    assert.equal(clusters[0].sourceText, '');
-    assert.equal(clusters[0].glyphs.length, 3);
+  it('keeps omitted input and handles glyphs without source text', function() {
+    const input = [{ id: 1, codePoints: [97] }];
+    const clusters = new ShapingClusters('abc', input);
+    assert.equal(finish(clusters, clusters.glyphs())[0].sourceText, 'abc');
+    const noText = new ShapingClusters(input, input);
+    assert.equal(finish(noText, noText.glyphs())[0].sourceText, '');
+    const noGlyphs = new ShapingClusters('abc', []);
+    assert.equal(finish(noGlyphs, [])[0].sourceText, 'abc');
   });
-  it('preserves omitted text and groups the run when provenance is unknown', function() {
-    assert.equal(buildGlyphClusters('abc', glyphs.slice(0, 1), positions, [span(0, 1)])[0].sourceText, 'abc');
-    assert.deepEqual(buildGlyphClusters('abc', glyphs, positions, [span(0, 1), null, span(2, 3)]).map(c => c.sourceText), ['abc']);
-    assert.equal(buildGlyphClusters('abc', [], [], [])[0].sourceText, 'abc');
+  it('preserves deleted and inserted glyph provenance', function() {
+    const { clusters, glyphs } = shape('abc');
+    const result = finish(clusters, [glyphs[0], { id: 4, cluster: glyphs[0].cluster }, glyphs[2]]);
+    assert.deepEqual(result.map(c => c.sourceText), ['ab', 'c']);
+    assert.deepEqual(result[0].glyphs.map(g => g.glyph.id), [0, 4]);
+  });
+  it('merges the run if an inserted glyph has no known cluster', function() {
+    const { clusters, glyphs } = shape('abc');
+    const result = finish(clusters, [glyphs[0], { id: 4 }, glyphs[1], glyphs[2]]);
+    assert.deepEqual(result.map(c => c.sourceText), ['abc']);
+    assert.deepEqual(result[0].glyphs.map(g => g.glyph.id), [0, 4, 1, 2]);
+  });
+  it('updates cluster glyphs after substitution', function() {
+    const { clusters, glyphs } = shape('ab');
+    const cluster = mergeGlyphClusters(glyphs);
+    const replacement = { id: 10, cluster };
+    clusters.updateGlyphs([replacement]);
+    assert.equal(clusters.clusters[0].sourceText, 'ab');
+    assert.strictEqual(clusters.clusters[0].glyphs[0].glyph, replacement);
   });
 });
