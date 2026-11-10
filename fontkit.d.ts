@@ -179,15 +179,6 @@ export interface GlyphCluster {
 
 /** A shaped run returned by Font.layout. */
 export interface GlyphRun {
-  /**
-   * An array of Glyph objects in the run
-   */
-  glyphs: Glyph[];
-
-  /**
-   * An array of GlyphPosition objects for each glyph in the run
-   */
-  positions: GlyphPosition[];
   /** Self-contained clusters in glyph drawing order. */
   clusters: GlyphCluster[];
 
@@ -615,8 +606,8 @@ export interface Font {
   widthOfGlyph(glyphId: number): number;
 
   /**
-   * This method returns a GlyphRun object, which includes an array of Glyphs
-   * and GlyphPositions for the given string. Glyph objects are described below.
+   * This method returns a GlyphRun object, which contains clusters of positioned
+   * glyphs for the given string. Glyph objects are described below.
    * GlyphPosition objects include 4 properties: xAdvance, yAdvance, xOffset,
    * and yOffset.
    *

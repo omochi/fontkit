@@ -1,6 +1,7 @@
 import KernProcessor from './KernProcessor';
 import UnicodeLayoutEngine from './UnicodeLayoutEngine';
 import GlyphRun from './GlyphRun';
+import ShapingRun from './ShapingRun';
 import GlyphPosition from './GlyphPosition';
 import { buildGlyphClusters } from './GlyphCluster';
 import * as Script from './Script';
@@ -65,13 +66,12 @@ export default class LayoutEngine {
       var glyphs = string;
     }
 
-    let glyphRun = new GlyphRun(glyphs, features, script, language, direction);
+    let glyphRun = new ShapingRun(glyphs, features, script, language, direction);
 
     // Return early if there are no glyphs
     if (glyphs.length === 0) {
       glyphRun.positions = [];
-      glyphRun.clusters = buildGlyphClusters(string, [], [], []);
-      return glyphRun;
+      return new GlyphRun(buildGlyphClusters(string, [], [], []), glyphRun);
     }
 
     // Setup the advanced layout engine
@@ -90,14 +90,14 @@ export default class LayoutEngine {
       for (const glyph of glyphRun.glyphs) delete glyph.sourceRange;
     }
     this.hideDefaultIgnorables(glyphRun.glyphs, glyphRun.positions);
-    glyphRun.clusters = buildGlyphClusters(string, glyphRun.glyphs, glyphRun.positions, sourceRanges);
+    const clusters = buildGlyphClusters(string, glyphRun.glyphs, glyphRun.positions, sourceRanges);
 
     // Let the layout engine clean up any state it might have
     if (this.engine && this.engine.cleanup) {
       this.engine.cleanup();
     }
 
-    return glyphRun;
+    return new GlyphRun(clusters, glyphRun);
   }
 
   substitute(glyphRun) {

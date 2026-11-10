@@ -1,3 +1,4 @@
+import flattenRun from './flattenRun';
 import './addTestHelpersToFontkit';
 import fontkit from '../src';
 import assert from 'assert';
@@ -51,19 +52,19 @@ describe('character to glyph mapping', function() {
     );
 
     it('should apply opentype GSUB features', function() {
-      let {glyphs} = font.layout('ffi', ['dlig']);
+      let {glyphs} = flattenRun(font.layout('ffi', ['dlig']));
       assert.equal(glyphs.length, 2);
       assert.deepEqual(glyphs.map(g => g.id), [ 514, 36 ]);
       return assert.deepEqual(glyphs.map(g => g.codePoints), [[102, 102], [105]]);
     });
 
     it('should enable fractions when using fraction slash', function() {
-      let {glyphs} = font.layout('123 1⁄16 123');
+      let {glyphs} = flattenRun(font.layout('123 1⁄16 123'));
       return assert.deepEqual(glyphs.map(g => g.id), [ 1088, 1089, 1090, 1, 1617, 1724, 1603, 1608, 1, 1088, 1089, 1090 ]);
     });
 
     it('should not break if can’t enable fractions when using fraction slash', function() {
-      let {glyphs} = font.layout('a⁄b ⁄ 1⁄ ⁄2');
+      let {glyphs} = flattenRun(font.layout('a⁄b ⁄ 1⁄ ⁄2'));
       return assert.deepEqual(glyphs.map(g => g.id), [ 28, 1724, 29, 1, 1724, 1, 1617, 1724, 1, 1724, 1604 ]);
     });
   });
@@ -74,21 +75,21 @@ describe('character to glyph mapping', function() {
     it('should list available features', () => assert.deepEqual(font.availableFeatures, [ 'tnum', 'sups', 'subs', 'numr', 'onum', 'lnum', 'liga', 'kern' ]));
 
     it('should apply default AAT morx features', function() {
-      let {glyphs} = font.layout('ffi 1⁄2');
+      let {glyphs} = flattenRun(font.layout('ffi 1⁄2'));
       assert.equal(glyphs.length, 5);
       assert.deepEqual(glyphs.map(g => g.id), [ 767, 3, 20, 645, 21 ]);
       return assert.deepEqual(glyphs.map(g => g.codePoints), [[102, 102, 105], [32], [49], [8260], [50]]);
     });
 
     it('should apply user specified features', function() {
-      let {glyphs} = font.layout('ffi 1⁄2', [ 'numr' ]);
+      let {glyphs} = flattenRun(font.layout('ffi 1⁄2', [ 'numr' ]));
       assert.equal(glyphs.length, 3);
       assert.deepEqual(glyphs.map(g => g.id), [ 767, 3, 126 ]);
       return assert.deepEqual(glyphs.map(g => g.codePoints), [[102, 102, 105], [32], [49, 8260, 50]]);
     });
 
     it('should handle rtl direction', function() {
-      let {glyphs} = font.layout('ffi', [], null, null, "rtl");
+      let {glyphs} = flattenRun(font.layout('ffi', [], null, null, "rtl"));
       assert.equal(glyphs.length, 3);
       assert.deepEqual(glyphs.map(g => g.id), [ 76, 73, 73 ]);
       return assert.deepEqual(glyphs.map(g => g.codePoints), [[105], [102], [102]]);
@@ -96,7 +97,7 @@ describe('character to glyph mapping', function() {
 
     it('should apply indic reordering features', function() {
       let f = fontkit.openSync(__dirname + '/data/Khmer/Khmer.ttf');
-      let {glyphs} = f.layout('ខ្ញុំអាចញ៉ាំកញ្ចក់បាន ដោយគ្មានបញ្ហា');
+      let {glyphs} = flattenRun(f.layout('ខ្ញុំអាចញ៉ាំកញ្ចក់បាន ដោយគ្មានបញ្ហា'));
       assert.deepEqual(glyphs.map(g => g.id), [
         45, 153, 177, 112, 248, 188, 49, 296, 44, 187, 149, 44, 117, 236, 188, 63, 3, 107,
         226, 188, 69, 218, 169, 188, 63, 64, 255, 175, 188

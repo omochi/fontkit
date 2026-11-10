@@ -338,7 +338,7 @@ export default class TTFFont {
   }
 
   /**
-   * Returns a GlyphRun object, which includes an array of Glyphs and GlyphPositions for the given string.
+   * Returns a GlyphRun object containing clusters of positioned glyphs for the given string.
    *
    * @param {string} string
    * @param {string[]} [userFeatures]

@@ -1,3 +1,4 @@
+import flattenRun from './flattenRun';
 import './addTestHelpersToFontkit';
 import fontkit from '../src';
 import assert from 'assert';
@@ -23,8 +24,9 @@ describe('vertical metrics', function() {
     const font = fontkit.openSync(__dirname + '/data/SourceSansPro/SourceSansPro-Regular.otf');
     const ligature = font.layout('ffi', ['dlig']);
     assert.deepEqual(ligature.clusters.map(cluster => cluster.sourceText), ['ff', 'i']);
-    assert.ok(ligature.glyphs.every(glyph => !Object.prototype.hasOwnProperty.call(glyph, 'sourceRange')));
-    assert.deepEqual(ligature.clusters.flatMap(cluster => cluster.glyphs.map(item => item.glyph.id)), ligature.glyphs.map(glyph => glyph.id));
+    assert.ok(flattenRun(ligature).glyphs.every(glyph => !Object.prototype.hasOwnProperty.call(glyph, 'sourceRange')));
+    assert.ok(!('glyphs' in ligature));
+    assert.ok(!('positions' in ligature));
     const variantFont = fontkit.openSync(__dirname + '/data/fonttest/TestCMAP14.otf');
     const variant = variantFont.layout('芦芦\u{E0100}芦\u{E0101}');
     assert.deepEqual(variant.clusters.map(cluster => cluster.sourceText), ['芦', '芦\u{E0100}', '芦\u{E0101}']);
@@ -35,8 +37,9 @@ describe('vertical metrics', function() {
     const font = fontkit.openSync(__dirname + '/data/SourceSansPro/SourceSansPro-Regular.otf');
     const run = font.layout('A\u0301B');
     assert.deepEqual(run.clusters.map(cluster => cluster.sourceText), ['A\u0301', 'B']);
-    assert.deepEqual(run.clusters.flatMap(cluster => cluster.glyphs.map(item => item.glyph)), run.glyphs);
-    assert.deepEqual(run.clusters.flatMap(cluster => cluster.glyphs.map(item => item.position)), run.positions);
+    assert.equal(run.clusters[0].glyphs.length, 2);
+    assert.ok(!('glyphs' in run));
+    assert.ok(!('positions' in run));
   });
 
   it('groups AAT ligatures and orders clusters in drawing order', function() {
@@ -48,7 +51,7 @@ describe('vertical metrics', function() {
   it('retains the original range when Hangul jamo are composed', function() {
     const font = fontkit.openSync(__dirname + '/data/NotoSansCJK/NotoSansCJKkr-Regular.otf');
     const run = font.layout('가');
-    assert.equal(run.glyphs.length, 1);
+    assert.equal(flattenRun(run).glyphs.length, 1);
     assert.deepEqual(run.clusters.map(cluster => cluster.sourceText), ['가']);
   });
 
@@ -56,18 +59,18 @@ describe('vertical metrics', function() {
     const font = fontkit.openSync(__dirname + '/data/OpenSans/OpenSans-Regular.ttf');
     assert.equal(font.vmtx, null);
     const run = font.layout('A', [], null, null, 'ttb');
-    assert.ok(run.glyphs[0].advanceHeight > 0);
-    assert.equal(run.positions[0].yAdvance, -run.glyphs[0].advanceHeight);
-    assert.notEqual(run.positions[0].yOffset, 0);
+    assert.ok(flattenRun(run).glyphs[0].advanceHeight > 0);
+    assert.equal(flattenRun(run).positions[0].yAdvance, -flattenRun(run).glyphs[0].advanceHeight);
+    assert.notEqual(flattenRun(run).positions[0].yOffset, 0);
   });
 
   it('substitutes vertical glyphs and advances down in top-to-bottom layout', function() {
     const font = fontkit.openSync(__dirname + '/data/NotoSansCJK/NotoSansCJKkr-Regular.otf');
     const horizontal = font.layout('（');
     const vertical = font.layout('（', [], null, null, 'ttb');
-    assert.notEqual(vertical.glyphs[0].id, horizontal.glyphs[0].id);
-    assert.equal(vertical.positions[0].xAdvance, 0);
-    assert.equal(vertical.positions[0].yAdvance, -1000);
-    assert.notEqual(vertical.positions[0].yOffset, 0);
+    assert.notEqual(flattenRun(vertical).glyphs[0].id, flattenRun(horizontal).glyphs[0].id);
+    assert.equal(flattenRun(vertical).positions[0].xAdvance, 0);
+    assert.equal(flattenRun(vertical).positions[0].yAdvance, -1000);
+    assert.notEqual(flattenRun(vertical).positions[0].yOffset, 0);
   });
 });

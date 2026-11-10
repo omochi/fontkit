@@ -88,17 +88,17 @@ const fontData = fs.readFileSync('font.ttf');
 const font = fontkit.create(fontData);
 
 // layout a string, using default shaping features.
-// returns a GlyphRun, describing glyphs and positions.
+// returns a GlyphRun, describing clusters of positioned glyphs.
 const run = font.layout('hello world!');
 
 // get an SVG path for a glyph
-const svg = run.glyphs[0].path.toSVG();
+const svg = run.clusters[0].glyphs[0].glyph.path.toSVG();
 
 // create a font subset
 const subset = font.createSubset();
-run.glyphs.forEach(function(glyph) {
-  subset.includeGlyph(glyph);
-});
+for (const cluster of run.clusters) {
+  for (const { glyph } of cluster.glyphs) subset.includeGlyph(glyph);
+}
 
 subset.encodeStream()
       .pipe(fs.createWriteStream('subset.ttf'));
@@ -204,13 +204,11 @@ Returns the advance width (described above) for a single glyph id.
 
 #### `font.layout(string, features = [])`
 
-This method returns a `GlyphRun` object, which includes an array of `Glyph`s and `GlyphPosition`s for the given string.
-`Glyph` objects are described below. `GlyphPosition` objects include 4 properties: `xAdvance`, `yAdvance`, `xOffset`,
-and `yOffset`.
+This method returns a `GlyphRun` object, which contains clusters of positioned glyphs for the given string.
+`GlyphPosition` has four properties: `xAdvance`, `yAdvance`, `xOffset`, and `yOffset`.
 
 The `clusters` array groups the result into self-contained units in glyph drawing order. Each cluster has an
-exact `sourceText` substring and a `glyphs` array of `{ glyph, position }` pairs. Concatenating their
-positioned glyphs yields the same drawing order as `run.glyphs` and `run.positions`. Clusters can be
+exact `sourceText` substring and a `glyphs` array of `{ glyph, position }` pairs. The clusters and their positioned glyphs are in drawing order. Clusters can be
 coalesced when a substitution or reordering crosses a boundary; they are safe boundaries for spacing,
 but are not guaranteed to be individual characters. Drawing order can differ from the input text order.
 When source provenance or `Intl.Segmenter` is unavailable, the complete run is returned as one cluster.
