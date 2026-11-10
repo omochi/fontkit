@@ -1,6 +1,6 @@
 {
   "name": "@pdf-lib/fontkit",
-  "version": "1.1.0",
+  "version": "1.7.7-omochi.2",
   "description": "An advanced font engine for Node and the browser",
   "main": "dist/fontkit.umd.js",
   "unpkg": "dist/fontkit.umd.min.js",
