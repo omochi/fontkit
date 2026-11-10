@@ -103,5 +103,29 @@ describe('font subsetting', function() {
         return done();
       }));
     });
+
+    it('preserves CID font dictionaries and outlines when a dictionary is reused', function(done) {
+      const font = fontkit.openSync(__dirname + '/data/NotoSansCJK/NotoSansCJKkr-Regular.otf');
+      const glyphs = font.layout('（あ）', [], null, null, 'ttb').clusters
+        .flatMap(cluster => cluster.glyphs.map(item => item.glyph));
+      const originalFDs = glyphs.map(glyph => font['CFF '].fdForGlyph(glyph.id));
+      assert.equal(originalFDs[0], originalFDs[2]);
+      assert.notEqual(originalFDs[0], originalFDs[1]);
+      const subset = font.createSubset();
+      glyphs.forEach(glyph => subset.includeGlyph(glyph));
+
+      subset.encodeStream().pipe(concat(function(buf) {
+        const stream = new r.DecodeStream(buf);
+        const cff = new CFFFont(stream);
+        const subsetFDs = glyphs.map((_, index) => cff.fdForGlyph(index + 1));
+        assert.equal(subsetFDs[0], subsetFDs[2]);
+        assert.notEqual(subsetFDs[0], subsetFDs[1]);
+        glyphs.forEach((glyph, index) => {
+          const subsetGlyph = new CFFGlyph(index + 1, [], { stream, 'CFF ': cff });
+          assert.equal(subsetGlyph.path.toSVG(), glyph.path.toSVG());
+        });
+        done();
+      }));
+    });
   });
 });

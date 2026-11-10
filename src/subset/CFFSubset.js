@@ -61,18 +61,18 @@ export default class CFFSubset extends Subset {
         continue;
       }
 
-      if (!used_fds[fd]) {
+      if (used_fds[fd] == null) {
+        used_fds[fd] = topDict.FDArray.length;
         topDict.FDArray.push(Object.assign({}, this.cff.topDict.FDArray[fd]));
         used_subrs.push({});
       }
 
-      used_fds[fd] = true;
-      topDict.FDSelect.fds.push(topDict.FDArray.length - 1);
+      topDict.FDSelect.fds.push(used_fds[fd]);
 
       let glyph = this.font.getGlyph(gid);
       let path = glyph.path; // this causes the glyph to be parsed
       for (let subr in glyph._usedSubrs) {
-        used_subrs[used_subrs.length - 1][subr] = true;
+        used_subrs[used_fds[fd]][subr] = true;
       }
     }
 
