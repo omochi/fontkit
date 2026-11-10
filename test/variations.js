@@ -1,3 +1,4 @@
+import flattenRun from './flattenRun';
 import './addTestHelpersToFontkit';
 import fontkit from '../src';
 import assert from 'assert';
@@ -111,8 +112,8 @@ describe('variations', function() {
     it('should support adjusting GPOS mark anchor points for variations', function () {
       let font = fontkit.openSync(__dirname + '/data/Mada/Mada-VF.ttf', {wght: 900});
       let run = font.layout('ف');
-      assert.equal(Math.floor(run.positions[0].xOffset), 639);
-      assert.equal(Math.floor(run.positions[0].yOffset), 542);
+      assert.equal(Math.floor(flattenRun(run).positions[0].xOffset), 639);
+      assert.equal(Math.floor(flattenRun(run).positions[0].yOffset), 542);
     });
   });
 
@@ -132,7 +133,7 @@ describe('variations', function() {
     });
 
     it('substitutes GSUB features depending on variations', function () {
-      let glyph = font.getVariation({wght: 900}).layout('$').glyphs[0];
+      let glyph = flattenRun(font.getVariation({wght: 900}).layout('$')).glyphs[0];
       assert.equal(glyph.name, 'dollar.nostroke');
       assert.equal(glyph.path.toSVG(), 'M258.1 38.37C197.22 38.37 166.53 48.42 118 71.47L192.04 19.47L182.62 103.05C176.51 155.21 154.51 174.1 114.52 174.1C89.15 174.1 64.21 160.58 51 125.42C51.63 35.9 124.22 -15.53 258.15 -15.53C416.88 -15.53 513.19 67.21 513.19 175.05C513.19 278.1 457.04 327.94 322.04 388.41L289.09 403.1C231.56 428.62 203.34 451.84 203.34 499.84C203.34 562.22 244.35 589.11 300.67 589.11C341.61 589.11 370.04 584.96 420.46 562.06L340.68 607.32L351.78 538.9C362.94 467.54 398.04 453.54 434.35 453.54C459.25 453.54 486.35 467.75 491.82 505.58C490.87 589.9 407.51 643.16 289.67 643.16C141 643.16 57.16 563.16 57.16 460.32C57.16 356.96 121.68 307.16 232.58 255.85L264.53 241.17C333.53 209.49 362.8 186.22 362.8 129.96C362.8 77 319.9 38.37 258.1 38.37ZM317.72 615.64L317.72 734.01L251.63 734.01L251.63 615.64L317.72 615.64ZM253.15 -115L319.25 -115L319.25 13.68L253.15 13.68L253.15 -115Z');
     });

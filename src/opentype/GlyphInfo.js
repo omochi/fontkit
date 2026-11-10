@@ -2,8 +2,9 @@ import unicode from 'unicode-properties';
 import OTProcessor from './OTProcessor';
 
 export default class GlyphInfo {
-  constructor(font, id, codePoints = [], features) {
+  constructor(font, id, codePoints = [], features, sourceRange = null) {
     this._font = font;
+    this.sourceRange = sourceRange;
     this.codePoints = codePoints;
     this.id = id;
 
@@ -52,6 +53,6 @@ export default class GlyphInfo {
   }
 
   copy() {
-    return new GlyphInfo(this._font, this.id, this.codePoints, this.features);
+    return new GlyphInfo(this._font, this.id, this.codePoints, this.features, this.sourceRange);
   }
 }

@@ -1,7 +1,9 @@
 import KernProcessor from './KernProcessor';
 import UnicodeLayoutEngine from './UnicodeLayoutEngine';
 import GlyphRun from './GlyphRun';
+import ShapingRun from './ShapingRun';
 import GlyphPosition from './GlyphPosition';
+import { buildGlyphClusters } from './GlyphCluster';
 import * as Script from './Script';
 import unicode from 'unicode-properties';
 import AATLayoutEngine from '../aat/AATLayoutEngine';
@@ -40,6 +42,16 @@ export default class LayoutEngine {
       }
 
       var glyphs = this.font.glyphsForString(string);
+      // Source ranges are per use, never properties of a cached font glyph.
+      let sourceOffset = 0;
+      glyphs = glyphs.map(glyph => {
+        const sourceText = String.fromCodePoint(...glyph.codePoints);
+        const result = Object.create(glyph);
+        result.sourceRange = string.slice(sourceOffset, sourceOffset + sourceText.length) === sourceText
+          ? { start: sourceOffset, end: sourceOffset + sourceText.length } : null;
+        sourceOffset += sourceText.length;
+        return result;
+      });
     } else {
       // Attempt to detect the script from the glyph code points if not provided.
       if (script == null) {
@@ -54,12 +66,12 @@ export default class LayoutEngine {
       var glyphs = string;
     }
 
-    let glyphRun = new GlyphRun(glyphs, features, script, language, direction);
+    let glyphRun = new ShapingRun(glyphs, features, script, language, direction);
 
     // Return early if there are no glyphs
     if (glyphs.length === 0) {
       glyphRun.positions = [];
-      return glyphRun;
+      return new GlyphRun(buildGlyphClusters(string, [], [], []), glyphRun);
     }
 
     // Setup the advanced layout engine
@@ -71,14 +83,21 @@ export default class LayoutEngine {
     this.substitute(glyphRun);
     this.position(glyphRun);
 
+    // Capture ranges before default-ignorable glyphs are replaced with spaces.
+    const sourceRanges = glyphRun.glyphs.map(glyph => glyph.sourceRange || null);
+    // Source bookkeeping is internal to shaping, not part of a font glyph.
+    if (typeof string === 'string') {
+      for (const glyph of glyphRun.glyphs) delete glyph.sourceRange;
+    }
     this.hideDefaultIgnorables(glyphRun.glyphs, glyphRun.positions);
+    const clusters = buildGlyphClusters(string, glyphRun.glyphs, glyphRun.positions, sourceRanges);
 
     // Let the layout engine clean up any state it might have
     if (this.engine && this.engine.cleanup) {
       this.engine.cleanup();
     }
 
-    return glyphRun;
+    return new GlyphRun(clusters, glyphRun);
   }
 
   substitute(glyphRun) {
@@ -90,7 +109,11 @@ export default class LayoutEngine {
 
   position(glyphRun) {
     // Get initial glyph positions
-    glyphRun.positions = glyphRun.glyphs.map(glyph => new GlyphPosition(glyph.advanceWidth));
+    glyphRun.positions = glyphRun.glyphs.map(glyph => {
+      if (glyphRun.direction !== 'ttb') return new GlyphPosition(glyph.advanceWidth);
+      const verticalOriginY = this.verticalOriginY(glyph);
+      return new GlyphPosition(0, -glyph.advanceHeight, -glyph.advanceWidth / 2, -verticalOriginY);
+    });
     let positioned = null;
 
     // Call the advanced layout engine. Returns the features applied.
@@ -108,7 +131,7 @@ export default class LayoutEngine {
     }
 
     // if kerning is not supported by GPOS, do kerning with the TrueType/AAT kern table
-    if ((!positioned || !positioned.kern) && glyphRun.features.kern !== false && this.font.kern) {
+    if (glyphRun.direction !== 'ttb' && (!positioned || !positioned.kern) && glyphRun.features.kern !== false && this.font.kern) {
       if (!this.kernProcessor) {
         this.kernProcessor = new KernProcessor(this.font);
       }
@@ -116,6 +139,15 @@ export default class LayoutEngine {
       this.kernProcessor.process(glyphRun.glyphs, glyphRun.positions);
       glyphRun.features.kern = true;
     }
+  }
+
+  verticalOriginY(glyph) {
+    const vorg = this.font.VORG;
+    if (vorg && (this.font.directory.tables['CFF '] || this.font.directory.tables.CFF2)) {
+      const metric = vorg.metrics.find(entry => entry.glyphIndex === glyph.id);
+      return metric ? metric.vertOriginY : vorg.defaultVertOriginY;
+    }
+    return glyph.cbox.maxY + glyph._getMetrics().topBearing;
   }
 
   hideDefaultIgnorables(glyphs, positions) {

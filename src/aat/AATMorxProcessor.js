@@ -3,6 +3,12 @@ import AATLookupTable from './AATLookupTable';
 import {cache} from '../decorators';
 
 // indic replacement flags
+function glyphWithSource(font, gid, codePoints, sourceRange) {
+  const glyph = Object.create(font.getGlyph(gid, codePoints));
+  glyph.sourceRange = sourceRange || null;
+  return glyph;
+}
+
 const MARK_FIRST = 0x8000;
 const MARK_LAST  = 0x2000;
 const VERB       = 0x000F;
@@ -141,7 +147,7 @@ export default class AATMorxProcessor {
       glyph = this.glyphs[this.markedGlyph];
       var gid = lookupTable.lookup(glyph.id);
       if (gid) {
-        this.glyphs[this.markedGlyph] = this.font.getGlyph(gid, glyph.codePoints);
+        this.glyphs[this.markedGlyph] = glyphWithSource(this.font, gid, glyph.codePoints, glyph.sourceRange);
       }
     }
 
@@ -151,7 +157,7 @@ export default class AATMorxProcessor {
       glyph = this.glyphs[index];
       var gid = lookupTable.lookup(glyph.id);
       if (gid) {
-        this.glyphs[index] = this.font.getGlyph(gid, glyph.codePoints);
+        this.glyphs[index] = glyphWithSource(this.font, gid, glyph.codePoints, glyph.sourceRange);
       }
     }
 
@@ -174,11 +180,13 @@ export default class AATMorxProcessor {
       let last = false;
       let ligatureIndex = 0;
       let codePoints = [];
+      let sourceRanges = [];
       let ligatureGlyphs = [];
 
       while (!last) {
         let componentGlyph = this.ligatureStack.pop();
         codePoints.unshift(...this.glyphs[componentGlyph].codePoints);
+        sourceRanges.push(this.glyphs[componentGlyph].sourceRange || null);
 
         let action = actions.getItem(actionIndex++);
         last = !!(action & LAST_MASK);
@@ -191,10 +199,14 @@ export default class AATMorxProcessor {
 
         if (last || store) {
           let ligatureEntry = ligatureList.getItem(ligatureIndex);
-          this.glyphs[componentGlyph] = this.font.getGlyph(ligatureEntry, codePoints);
+          const sourceRange = sourceRanges.every(Boolean)
+            ? { start: Math.min(...sourceRanges.map(range => range.start)), end: Math.max(...sourceRanges.map(range => range.end)) }
+            : null;
+          this.glyphs[componentGlyph] = glyphWithSource(this.font, ligatureEntry, codePoints, sourceRange);
           ligatureGlyphs.push(componentGlyph);
           ligatureIndex = 0;
           codePoints = [];
+          sourceRanges = [];
         } else {
           this.glyphs[componentGlyph] = this.font.getGlyph(0xffff);
         }
@@ -213,7 +225,7 @@ export default class AATMorxProcessor {
       if (glyph.id !== 0xffff) {
         let gid = lookupTable.lookup(glyph.id);
         if (gid) { // 0 means do nothing
-          glyphs[index] = this.font.getGlyph(gid, glyph.codePoints);
+          glyphs[index] = glyphWithSource(this.font, gid, glyph.codePoints, glyph.sourceRange);
         }
       }
     }

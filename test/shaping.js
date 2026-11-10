@@ -1,3 +1,4 @@
+import flattenRun from './flattenRun';
 import './addTestHelpersToFontkit';
 import fontkit from '../src';
 import assert from 'assert';
@@ -7,7 +8,7 @@ describe('shaping', function() {
   let test = (description, font, text, output) => {
     it(description, function() {
       let f = fontCache[font] || (fontCache[font] = fontkit.openSync(__dirname + '/data/' + font));
-      let {glyphs, positions} = f.layout(text);
+      let {glyphs, positions} = flattenRun(f.layout(text));
 
       // Generate a compact string representation of the results
       // in the same format as Harfbuzz, for comparison.
@@ -32,12 +33,12 @@ describe('shaping', function() {
     let font = fontkit.openSync(__dirname + '/data/amiri/amiri-regular.ttf');
 
     it('should use correct script and language when features are not specified', function() {
-      let {glyphs} = font.layout('۴', 'arab', 'URD');
+      let {glyphs} = flattenRun(font.layout('۴', 'arab', 'URD'));
       return assert.deepEqual(glyphs.map(g => g.id), [ 1940 ]);
     });
 
     it('should use specified left-to-right direction', function() {
-      let {glyphs} = font.layout('١٢٣', 'arab', 'ARA ', 'ltr');
+      let {glyphs} = flattenRun(font.layout('١٢٣', 'arab', 'ARA ', 'ltr'));
       return assert.deepEqual(glyphs.map(g => g.id), [ 446, 447, 448 ]);
     });
   });
@@ -74,49 +75,49 @@ describe('shaping', function() {
     let font = fontkit.openSync(__dirname + '/data/NotoSansCJK/NotoSansCJKkr-Regular.otf');
 
     it('should use composed versions if supported by the font', function() {
-      let {glyphs} = font.layout('\uD734\uAC00\u0020\uAC00\u002D\u002D\u0020\u0028\uC624\u002D\u002D\u0029');
+      let {glyphs} = flattenRun(font.layout('\uD734\uAC00\u0020\uAC00\u002D\u002D\u0020\u0028\uC624\u002D\u002D\u0029'));
       return assert.deepEqual(glyphs.map(g => g.id), [ 58626, 47566, 62995, 47566, 14, 14, 1, 9, 54258, 14, 14, 10 ]);
     });
 
     it('should compose decomposed syllables if supported', function() {
-      let {glyphs} = font.layout('\u1112\u1172\u1100\u1161\u0020\u1100\u1161\u002D\u002D\u0020\u0028\u110B\u1169\u002D\u002D\u0029');
+      let {glyphs} = flattenRun(font.layout('\u1112\u1172\u1100\u1161\u0020\u1100\u1161\u002D\u002D\u0020\u0028\u110B\u1169\u002D\u002D\u0029'));
       return assert.deepEqual(glyphs.map(g => g.id), [ 58626, 47566, 62995, 47566, 14, 14, 1, 9, 54258, 14, 14, 10 ]);
     });
 
     it('should use OT features for non-combining <L,V,T>', function() {
-      let {glyphs} = font.layout('\ua960\ud7b0\ud7cb');
+      let {glyphs} = flattenRun(font.layout('\ua960\ud7b0\ud7cb'));
       return assert.deepEqual(glyphs.map(g => g.id), [ 64003, 64479, 64822 ]);
     });
 
     it('should decompose <LV,T> to <L,V,T> if <LVT> is not supported', function() {
       // <L,V> combine at first, but the T is non-combining, so this
       // tests that the <LV> gets decomposed again in this case.
-      let {glyphs} = font.layout('\u1100\u1161\ud7cb');
+      let {glyphs} = flattenRun(font.layout('\u1100\u1161\ud7cb'));
       return assert.deepEqual(glyphs.map(g => g.id), [ 63657, 64408, 64685 ]);
     });
 
     it('should reorder tone marks to the beginning of <L,V> syllables', function() {
-      let {glyphs} = font.layout('\ua960\ud7b0\u302f');
+      let {glyphs} = flattenRun(font.layout('\ua960\ud7b0\u302f'));
       return assert.deepEqual(glyphs.map(g => g.id), [ 1436, 64378, 64574 ]);
     });
 
     it('should reorder tone marks to the beginning of <L,V,T> syllables', function() {
-      let {glyphs} = font.layout('\ua960\ud7b0\ud7cb\u302f');
+      let {glyphs} = flattenRun(font.layout('\ua960\ud7b0\ud7cb\u302f'));
       return assert.deepEqual(glyphs.map(g => g.id), [ 1436, 64003, 64479, 64822 ]);
     });
 
     it('should reorder tone marks to the beginning of <LV> syllables', function() {
-      let {glyphs} = font.layout('\uac00\u302f');
+      let {glyphs} = flattenRun(font.layout('\uac00\u302f'));
       return assert.deepEqual(glyphs.map(g => g.id), [ 1436, 47566 ]);
     });
 
     it('should reorder tone marks to the beginning of <LVT> syllables', function() {
-      let {glyphs} = font.layout('\uac01\u302f');
+      let {glyphs} = flattenRun(font.layout('\uac01\u302f'));
       return assert.deepEqual(glyphs.map(g => g.id), [ 1436, 47567 ]);
     });
 
     it('should insert a dotted circle for invalid tone marks', function() {
-      let {glyphs} = font.layout('\u1100\u302f\u1161');
+      let {glyphs} = flattenRun(font.layout('\u1100\u302f\u1161'));
       return assert.deepEqual(glyphs.map(g => g.id), [ 365, 1436, 1256, 462 ]);
     });
   });

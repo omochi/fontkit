@@ -1,3 +1,4 @@
+import flattenRun from './flattenRun';
 import './addTestHelpersToFontkit';
 import fontkit from '../src';
 import assert from 'assert';
@@ -25,12 +26,12 @@ describe('glyphs', function() {
 
     it('should resolve composite glyphs recursively', function () {
       let r = mada.layout('ي');
-      assert.equal(r.glyphs[0].path.toSVG(), 'M-140 0Q-140 -22 -125 -37Q-110 -52 -88 -52Q-66 -52 -51 -37Q-36 -22 -36 0Q-36 22 -51 37Q-66 52 -88 52Q-110 52 -125 37Q-140 22 -140 0ZM36 0Q36 -22 51 -37Q66 -52 88 -52Q110 -52 125 -37Q140 -22 140 0Q140 22 125 37Q110 52 88 52Q66 52 51 37Q36 22 36 0Z');
+      assert.equal(flattenRun(r).glyphs[0].path.toSVG(), 'M-140 0Q-140 -22 -125 -37Q-110 -52 -88 -52Q-66 -52 -51 -37Q-36 -22 -36 0Q-36 22 -51 37Q-66 52 -88 52Q-110 52 -125 37Q-140 22 -140 0ZM36 0Q36 -22 51 -37Q66 -52 88 -52Q110 -52 125 -37Q140 -22 140 0Q140 22 125 37Q110 52 88 52Q66 52 51 37Q36 22 36 0Z');
     });
 
     it('should transform points of a composite glyph', function () {
       let r = mada.layout('فا');
-      assert.equal(r.glyphs[0].path.toSVG(), 'M155 624L155 84Q150 90 145.5 94.5Q141 99 136 105L292 105L292 0L156 0Q128 0 103.5 13.5Q79 27 64.5 50.5Q50 74 50 104L50 624ZM282 105L312 105L312 0L282 0Z');
+      assert.equal(flattenRun(r).glyphs[0].path.toSVG(), 'M155 624L155 84Q150 90 145.5 94.5Q141 99 136 105L292 105L292 0L156 0Q128 0 103.5 13.5Q79 27 64.5 50.5Q50 74 50 104L50 624ZM282 105L312 105L312 0L282 0Z');
     });
 
     it('should be able to get a scaled path at a given font size', function () {

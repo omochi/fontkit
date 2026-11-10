@@ -169,20 +169,18 @@ export interface GlyphPosition {
   yOffset: number;
 }
 
-/**
- * Represents a run of Glyph and GlyphPosition objects.
- * Returned by the Font.layout method.
- */
-export interface GlyphRun {
-  /**
-   * An array of Glyph objects in the run
-   */
-  glyphs: Glyph[];
+/** A contiguous input substring and its positioned output glyphs. */
+export interface GlyphCluster {
+  /** The exact contiguous input substring represented by this cluster. */
+  sourceText: string;
+  /** Glyphs in drawing order and their positions in font units. */
+  glyphs: { glyph: Glyph; position: GlyphPosition }[];
+}
 
-  /**
-   * An array of GlyphPosition objects for each glyph in the run
-   */
-  positions: GlyphPosition[];
+/** A shaped run returned by Font.layout. */
+export interface GlyphRun {
+  /** Self-contained clusters in glyph drawing order. */
+  clusters: GlyphCluster[];
 
   /**
    * The script that was requested for shaping. This was either passed in or detected automatically.
@@ -199,7 +197,7 @@ export interface GlyphRun {
    * The direction requested for shaping, as passed in (either ltr or rtl).
    * If `null`, the default direction of the script is used.
    */
-  direction: 'ltr' | 'rtl' | null;
+  direction: 'ltr' | 'rtl' | 'ttb' | null;
 
   /**
    * The features requested during shaping. This is a combination of user
@@ -608,8 +606,8 @@ export interface Font {
   widthOfGlyph(glyphId: number): number;
 
   /**
-   * This method returns a GlyphRun object, which includes an array of Glyphs
-   * and GlyphPositions for the given string. Glyph objects are described below.
+   * This method returns a GlyphRun object, which contains clusters of positioned
+   * glyphs for the given string. Glyph objects are described below.
    * GlyphPosition objects include 4 properties: xAdvance, yAdvance, xOffset,
    * and yOffset.
    *
@@ -620,6 +618,9 @@ export interface Font {
   layout(
     string: string,
     features?: TypeFeatures | (keyof TypeFeatures)[],
+    script?: string | null,
+    language?: string | null,
+    direction?: 'ltr' | 'rtl' | 'ttb' | null,
   ): GlyphRun;
 
   // Other Methods

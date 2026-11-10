@@ -174,6 +174,7 @@ function decompose(glyphs, i, font) {
     insert.push(tjmo);
   }
 
+  for (const part of insert) part.sourceRange = glyph.sourceRange;
   glyphs.splice(i, 1, ...insert);
   return i + insert.length - 1;
 }
@@ -221,7 +222,13 @@ function compose(glyphs, i, font) {
     // otherwise apply the proper OpenType features to each component.
     if (font.hasGlyphForCodePoint(s)) {
       let del = prevType === V ? 3 : 2;
-      glyphs.splice(i - del + 1, del, getGlyph(font, s, glyph.features));
+      const parts = glyphs.slice(i - del + 1, i + 1);
+      const result = getGlyph(font, s, glyph.features);
+      const ranges = parts.map(part => part.sourceRange);
+      result.sourceRange = ranges.every(Boolean)
+        ? { start: Math.min(...ranges.map(range => range.start)), end: Math.max(...ranges.map(range => range.end)) }
+        : null;
+      glyphs.splice(i - del + 1, del, result);
       return i - del + 1;
     }
   }
