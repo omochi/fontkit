@@ -81,9 +81,7 @@ export default class IndicShaper extends DefaultShaper {
       if (d) {
         let decomposed = d.map(c => {
           let g = plan.font.glyphForCodePoint(c);
-          const result = new GlyphInfo(plan.font, g.id, [c], glyphs[i].features);
-          result.sourceRange = glyphs[i].sourceRange;
-          return result;
+          return new GlyphInfo(plan.font, g.id, [c], glyphs[i].features, glyphs[i].sourceRange);
         });
 
         glyphs.splice(i, 1, ...decomposed);
