@@ -55,6 +55,13 @@ describe('vertical metrics', function() {
     assert.deepEqual(run.clusters.map(cluster => cluster.sourceText), ['가']);
   });
 
+  it('retains source text when Hangul shaping inserts a dotted circle', function() {
+    const font = fontkit.openSync(__dirname + '/data/NotoSansCJK/NotoSansCJKkr-Regular.otf');
+    const run = font.layout('\u302f', [], 'hang');
+    assert.equal(flattenRun(run).glyphs.length, 2);
+    assert.deepEqual(run.clusters.map(cluster => cluster.sourceText), ['\u302f']);
+  });
+
   it('falls back to horizontal font-wide metrics when vmtx is absent', function() {
     const font = fontkit.openSync(__dirname + '/data/OpenSans/OpenSans-Regular.ttf');
     assert.equal(font.vmtx, null);
