@@ -16,6 +16,12 @@ describe('glyph clusters', function() {
     assert.deepEqual(clusters.map(c => c.sourceText), ['a\u0301b']);
     assert.deepEqual(clusters[0].glyphs.map(g => g.glyph.id), [0, 1]);
   });
+  it('merges intervening graphemes into a non-adjacent ligature cluster', function() {
+    const output = [{ id: 10 }, glyphs[1]];
+    const clusters = buildGlyphClusters('abc', output, positions, [span(0, 3), span(1, 2)]);
+    assert.deepEqual(clusters.map(c => c.sourceText), ['abc']);
+    assert.deepEqual(clusters[0].glyphs.map(item => item.glyph.id), [10, 1]);
+  });
   it('merges visually interleaved clusters and preserves drawing order', function() {
     const clusters = buildGlyphClusters('ab', glyphs, positions, [span(0, 1), span(1, 2), span(0, 1)]);
     assert.deepEqual(clusters.map(c => c.sourceText), ['ab']);
@@ -42,5 +48,18 @@ describe('glyph clusters', function() {
     assert.equal(buildGlyphClusters('abc', glyphs.slice(0, 1), positions, [span(0, 1)])[0].sourceText, 'abc');
     assert.deepEqual(buildGlyphClusters('abc', glyphs, positions, [span(0, 1), null, span(2, 3)]).map(c => c.sourceText), ['abc']);
     assert.equal(buildGlyphClusters('abc', [], [], [])[0].sourceText, 'abc');
+  });
+  it('preserves deleted input by attaching it to an adjacent cluster', function() {
+    const remaining = [glyphs[0], glyphs[2]];
+    const clusters = buildGlyphClusters('abc', remaining, positions, [span(0, 1), span(2, 3)]);
+    assert.deepEqual(clusters.map(c => c.sourceText), ['ab', 'c']);
+    assert.deepEqual(clusters.map(c => c.glyphs.map(item => item.glyph.id)), [[0], [2]]);
+  });
+  it('groups the run when an inserted glyph has unknown provenance', function() {
+    const output = [glyphs[0], { id: 4 }, glyphs[1], glyphs[2]];
+    const clusters = buildGlyphClusters('abc', output, [...positions, { xAdvance: 3 }],
+      [span(0, 1), null, span(1, 2), span(2, 3)]);
+    assert.deepEqual(clusters.map(c => c.sourceText), ['abc']);
+    assert.deepEqual(clusters[0].glyphs.map(item => item.glyph.id), [0, 4, 1, 2]);
   });
 });
