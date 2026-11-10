@@ -208,6 +208,14 @@ This method returns a `GlyphRun` object, which includes an array of `Glyph`s and
 `Glyph` objects are described below. `GlyphPosition` objects include 4 properties: `xAdvance`, `yAdvance`, `xOffset`,
 and `yOffset`.
 
+The `clusters` array groups the result into self-contained units in glyph drawing order. Each cluster has an
+exact `sourceText` substring and a `glyphs` array of `{ glyph, position }` pairs. Concatenating their
+positioned glyphs yields the same drawing order as `run.glyphs` and `run.positions`. Clusters can be
+coalesced when a substitution or reordering crosses a boundary; they are safe boundaries for spacing,
+but are not guaranteed to be individual characters. Drawing order can differ from the input text order.
+When source provenance or `Intl.Segmenter` is unavailable, the complete run is returned as one cluster.
+For the internal glyph-array input form there is no source string, so its cluster has empty `sourceText`.
+
 The `features` parameter is an array of [OpenType feature tags](https://www.microsoft.com/typography/otspec/featuretags.htm) to be applied
 in addition to the default set. If this is an AAT font, the OpenType feature tags are mapped to AAT features.
 

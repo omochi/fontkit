@@ -19,8 +19,8 @@ export default class GlyphRun {
      */
     this.positions = null;
 
-    // UTF-16 source ranges per output glyph, or null when unavailable.
-    this.sourceRanges = null;
+    // Self-contained source text and positioned glyphs, in drawing order.
+    this.clusters = null;
 
     /**
      * The script that was requested for shaping. This was either passed in or detected automatically.

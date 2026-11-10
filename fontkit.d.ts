@@ -169,10 +169,15 @@ export interface GlyphPosition {
   yOffset: number;
 }
 
-/**
- * Represents a run of Glyph and GlyphPosition objects.
- * Returned by the Font.layout method.
- */
+/** A contiguous input substring and its positioned output glyphs. */
+export interface GlyphCluster {
+  /** The exact contiguous input substring represented by this cluster. */
+  sourceText: string;
+  /** Glyphs in drawing order and their positions in font units. */
+  glyphs: { glyph: Glyph; position: GlyphPosition }[];
+}
+
+/** A shaped run returned by Font.layout. */
 export interface GlyphRun {
   /**
    * An array of Glyph objects in the run
@@ -183,8 +188,8 @@ export interface GlyphRun {
    * An array of GlyphPosition objects for each glyph in the run
    */
   positions: GlyphPosition[];
-  /** UTF-16 ranges in the input text for each output glyph, or null when unavailable. */
-  sourceRanges: ({ start: number; end: number } | null)[] | null;
+  /** Self-contained clusters in glyph drawing order. */
+  clusters: GlyphCluster[];
 
   /**
    * The script that was requested for shaping. This was either passed in or detected automatically.

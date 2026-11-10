@@ -2,6 +2,7 @@ import KernProcessor from './KernProcessor';
 import UnicodeLayoutEngine from './UnicodeLayoutEngine';
 import GlyphRun from './GlyphRun';
 import GlyphPosition from './GlyphPosition';
+import { buildGlyphClusters } from './GlyphCluster';
 import * as Script from './Script';
 import unicode from 'unicode-properties';
 import AATLayoutEngine from '../aat/AATLayoutEngine';
@@ -69,7 +70,7 @@ export default class LayoutEngine {
     // Return early if there are no glyphs
     if (glyphs.length === 0) {
       glyphRun.positions = [];
-      glyphRun.sourceRanges = [];
+      glyphRun.clusters = buildGlyphClusters(string, [], [], []);
       return glyphRun;
     }
 
@@ -83,8 +84,13 @@ export default class LayoutEngine {
     this.position(glyphRun);
 
     // Capture ranges before default-ignorable glyphs are replaced with spaces.
-    glyphRun.sourceRanges = glyphRun.glyphs.map(glyph => glyph.sourceRange || null);
+    const sourceRanges = glyphRun.glyphs.map(glyph => glyph.sourceRange || null);
+    // Source bookkeeping is internal to shaping, not part of a font glyph.
+    if (typeof string === 'string') {
+      for (const glyph of glyphRun.glyphs) delete glyph.sourceRange;
+    }
     this.hideDefaultIgnorables(glyphRun.glyphs, glyphRun.positions);
+    glyphRun.clusters = buildGlyphClusters(string, glyphRun.glyphs, glyphRun.positions, sourceRanges);
 
     // Let the layout engine clean up any state it might have
     if (this.engine && this.engine.cleanup) {
